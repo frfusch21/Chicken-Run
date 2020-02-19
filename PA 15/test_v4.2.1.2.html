@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<title>Run Chicken Run!</title>
+
+	<script src="p5.js"></script>
+	<style>
+
+			* { margin:0; overflow:hidden; padding:0; }
+
+			html { height:100%; width:100%; }
+
+			body { background-color:#000000; display:grid; height:100%; width:100%; }
+
+			canvas { align-self:center; justify-self:center; }
+
+	</style>
+</head>
+<body>
+		<script type="text/javascript">
+			
+			let chicken;
+			//let alien;
+			let alien = [];
+			let bullets = [];
+			let img;
+			let scorePos;
+			let gameOver;
+			let gameRunning;
+
+			var columns = 16; var rows = 16; var tile_size = 16;
+			var bg =   [1,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1,
+						0,1,0,0,0,1,0,0,1,1,0,1,0,1,1,0,
+						1,1,1,1,0,0,0,1,0,1,0,0,0,0,1,0,
+						2,2,2,0,0,0,0,1,1,0,1,0,0,2,2,2,
+						0,0,1,1,1,0,0,1,0,0,1,0,0,1,0,0,
+						1,1,1,0,1,0,1,1,0,0,0,1,1,0,0,0,
+						1,0,0,1,0,1,0,0,1,0,0,0,1,1,0,1,
+						0,1,1,0,0,2,2,2,2,2,2,0,1,1,0,0,
+						0,0,0,1,1,0,0,0,1,0,1,0,1,0,1,0,
+						1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,
+						0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+						2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+						3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+						3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+						3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+						3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3];
+
+			//Loading the image that will be used
+			function preload(){
+				boldFont = loadFont('fonts/pixelmix/pixelmix_bold.ttf');
+  				normalFont = loadFont('fonts/pixelmix/pixelmix.ttf');
+				img = loadImage("shoot2.png");
+			}
+
+			//---Setting up the canvas---
+			function setup(){
+				createCanvas(648, 648);
+				noSmooth();
+				width = tile_size * columns;
+				height = tile_size * rows;
+				scorePos = createVector(10, 30);
+				chicken = new Chicken();
+				//alien = new Alien();
+				resetGame();
+			}
+
+			//---Draw the included function unto the canvas---
+			function draw(){
+				frameRate(60);
+				//alert(alien.length);
+				background("gray");
+				scale(2.53);			
+
+				for(let index = bg.length - 1; index > -1; --index){
+
+					let value = bg[index];
+					let tile_x = (index % columns) * tile_size;
+					let tile_y = Math.floor(index / columns) * tile_size;
+
+					image(img, tile_x, tile_y, tile_size, tile_size, value * tile_size, 0, tile_size, tile_size);
+				}
+
+				for (let i = bullets.length - 1; i >= 0; i--){
+					if(bullets[i].pos.x < 0 || bullets[i].pos.x > width){
+						//alert("hit");
+						bullets.splice(i, 1);
+					}else{
+						bullets[i].render();
+						if(!gameOver)
+							bullets[i].update();
+						for(let j = alien.length - 1; j >= 0; j--){
+							if(collideBulletChicken(bullets[i].pos.x, bullets[i].pos.y, 3, 3, alien[j].pos.x, alien[j].pos.y, tile_size, tile_size)){
+								this.source_x = 132;
+								this.source_x = 152;
+								alien.splice(j, 1);
+								bullets.splice(i, bullets.length);
+								break;
+							}
+
+						}
+					}				
+				}
+				if(alien.length == 0){
+					gameOver = true;
+				}else{
+					for(let j = alien.length - 1; j >= 0; j--){
+						alien[j].render();
+						if(gameRunning){
+							alien[j].update();
+						}
+					}
+
+				}
+
+				if(gameRunning){
+					chicken.render();
+					if(!gameOver){
+						chicken.update();
+						//alien[0].update();
+					}
+				}
+
+				StatusBar();
+				showText();
+			}
+
+			function resetGame(){
+				alien = [];
+				for(let i = 0; i < 1; i++){
+					alien.push(new Alien());
+				}
+				gameOver = false;
+				gameRunning = false;
+			}
+
+			function keyPressed(){
+				if(gameOver){
+					if(keyCode == 82) //'r' to restart
+						resetGame();
+				}
+
+				if(!gameRunning && (keyCode !== 32)) { //Press Any Key
+					gameRunning = true;
+				}
+				if(!gameOver && gameRunning){
+					if(keyCode == 32){ //Space bar to shoot
+						bullets.push(new Bullet(chicken.pos.x, chicken.pos.y, chicken.d));
+					}
+				}
+			}
+
+			function StatusBar(){
+				scoreText = "RUN CHICKEN RUN ";
+
+				push();
+				translate(0,0);
+				noStroke();
+				if(gameOver) {
+					scoreText += "	GAME OVER!";
+					fill(100,0,0);
+				}else{
+					fill(20,20,20);
+				}
+				rect(5, 5, width - scorePos.x, scorePos.y - 15);
+				fill(200,200,200);
+				textFont(normalFont);
+				textSize(5);
+				text(scoreText, scorePos.x, scorePos.y - 15);
+				pop();
+			}
+
+			function showText(){
+				show = ">> Press R to restart <<";
+				push();
+				translate(0,0);
+				fill(0, 0, 0);
+				noStroke();
+				textFont(boldFont);
+				textAlign(CENTER);
+				textSize(10);
+				if(gameOver){
+					text(show, width / 2, 35);
+				}
+				pop();
+			}
+
+			//Player Function
+			function Chicken(){
+
+				this.pos = createVector(200, 100);
+				this.x_old;
+				this.y_old;
+				this.vx = 0;
+				this.vy = 0;
+				this.source_x = 64;
+				this.dir; //facing left
+				this.jumping = true;
+
+				this.update = function(){
+					//----Movement---------------------------------------------------
+					//Left
+					this.d = -1;
+					if(keyIsDown(39)){ //Right Arrow
+						this.vx += 0.3;
+						this.source_x = 81;
+						this.d = 1;
+					}
+					//Right
+					else if(keyIsDown(37)){ //Left Arrow
+						this.vx -= 0.3;
+						this.source_x = 65;
+						this.d = -1;
+					}
+					//Jump
+					if(keyIsDown(38) && this.jumping == false){ //Up Arrow
+						this.vy -= 20;
+						this.jumping = true;
+					}
+					//---------------------------------------------------------------
+
+					this.top_old = this.pos.x; 					//Getting X old position on Top from the previous frame
+					this.bot_old = this.pos.y + tile_size; 		//Getting Y old position on Bottom from the previous frame
+					this.right_old = this.pos.x + tile_size; 	//Getting Right old position from the previous frame
+					this.left_old = this.pos.y;					//Getting Left old position from the previous frame
+
+					this.vy += 1.5;
+					this.pos.x += this.vx;
+					this.pos.y += this.vy;
+					this.vx *= 0.9;
+					this.vy *= 0.95;
+
+					this.collide();
+
+				}
+
+				this.collide = function(){
+					
+					//****Reach the left and right boundary****
+					if(this.pos.x <= 0){
+						this.pos.x = 0;
+					}
+					else if(this.pos.x > width-16){
+						this.pos.x = width-16;
+					}
+					//**********************
+
+					//Middle Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform so that the chicken didn't teleport unto the platform
+					//Checking the left side of the chicken with the right side of the platform
+					//Checking the right side of the chicken with the left side of the platform
+					if 	(	this.pos.y + tile_size > tile_size * 7 + 4 	&&
+							this.bot_old <= tile_size * 7 + 4 			&&
+							this.pos.x < tile_size * 11 - 4				&&
+							this.pos.x + tile_size > tile_size * 5){
+						this.pos.y = tile_size * 6 + 4;
+						this.vy = 0;
+						this.jumping = false;}
+
+					//Top Left Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform
+					//Checking the left side of the chicken with the right side of the platform
+					else if(this.pos.y + tile_size > tile_size * 3 + 4 &&
+							this.bot_old <= tile_size * 3 + 4 &&
+							this.pos.x < tile_size * 3){
+						this.pos.y = tile_size * 2 + 4;
+						this.vy = 0;
+						this.jumping = false;}
+
+					//Top Right Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform
+					//Checking the right side of the chicken with the right side of the platform
+					else if(this.pos.y + tile_size > tile_size * 3 + 4	&&
+							this.bot_old <= tile_size * 3 + 4 			&&
+							this.pos.x + tile_size > tile_size * 13){
+						this.pos.y = tile_size * 2 + 4;
+						this.vy = 0;
+						this.jumping = false;
+					}
+
+					//Ground
+					//To make sure that when the chicken falling, it will land unto the ground
+					else if(this.pos.y + tile_size > tile_size * 10 + 4){
+						this.jumping = false;
+						this.pos.y = tile_size * 10 + 4;
+						this.vy = 0;}
+					//----------------------------------------------------------------------------------------
+
+					//----------------------------------------------------------------------------------------
+					//Collide with the alien
+					if( (alien[0].pos.y + 16) == (chicken.pos.y + 16)	&&
+						 alien[0].pos.y == chicken.pos.y 				&&
+						 alien[0].pos.x < (chicken.pos.x + 16)			&&
+						(alien[0].pos.x + 16) > chicken.pos.x){
+						gameOver = true;
+					}
+
+				}
+
+				//---Drawing the player---
+				this.render = function(){
+//					fill(this.color);
+//					noStroke();
+//					rect(this.pos.x, this.pos.y, 30, 30);
+					image(img, this.pos.x, this.pos.y, tile_size, tile_size, this.source_x, 0, tile_size, tile_size);
+				}
+			}
+
+			function Alien(){
+				this.source_x;
+				this.bot_old;
+				this.vy = 0;
+				this.vx = 0;
+				this.jumping = true;
+				this.hit = false;
+				this.d = 20;
+				this.pos = createVector(50, 100);
+				this.color = color(0,0,0);
+
+
+				this.render = function(){
+					this.image = image(img, this.pos.x, this.pos.y, tile_size, tile_size, this.source_x, 0, tile_size, tile_size);
+				}
+
+				this.update = function(){
+					if(this.pos.x < chicken.pos.x){
+						this.vx += 0.7;
+						this.source_x = 114;
+					}else if(this.pos.x > chicken.pos.x){
+						this.vx -= 0.7;
+						this.source_x = 98;
+					}
+					if(this.pos.y > chicken.pos.y && (this.pos.x + tile_size < chicken.pos.x || this.pos.y > chicken.pos.x + tile_size) && this.jumping == false){
+						this.vy -= 20;
+						this.jumping = true;
+					}
+
+					this.bot_old = this.pos.y + tile_size;
+					this.pos.x += this.vx;
+					this.pos.y += this.vy;
+					this.vx *= 0.5;
+					this.vy += 1.5;
+					this.vy *= 0.95;
+
+					this.collide();
+				}
+
+				this.collide = function(){
+					//Middle Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform so that the chicken didn't teleport unto the platform
+					//Checking the left side of the chicken with the right side of the platform
+					//Checking the right side of the chicken with the left side of the platform
+					if 	(	this.pos.y + tile_size > tile_size * 7 + 4 	&&
+							this.bot_old <= tile_size * 7 + 4 			&&
+							this.pos.x < tile_size * 11 - 4				&&
+							this.pos.x + tile_size > tile_size * 5){
+						this.pos.y = tile_size * 6 + 4;
+						this.vy = 0;
+						this.jumping = false;}
+
+					//Top Left Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform
+					//Checking the left side of the chicken with the right side of the platform
+					else if(this.pos.y + tile_size > tile_size * 3 + 4 &&
+							this.bot_old <= tile_size * 3 + 4 &&
+							this.pos.x < tile_size * 3){
+						this.pos.y = tile_size * 2 + 4;
+						this.vy = 0;
+						this.jumping = false;}
+
+					//Top Right Platform
+					//Checking the bottom side of the chicken with the top side of the platform
+					//Checking the previous frame position of the bottom side of the chicken with the top of the platform
+					//Checking the right side of the chicken with the right side of the platform
+					else if(this.pos.y + tile_size > tile_size * 3 + 4	&&
+							this.bot_old <= tile_size * 3 + 4 			&&
+							this.pos.x + tile_size > tile_size * 13){
+						this.pos.y = tile_size * 2 + 4;
+						this.vy = 0;
+						this.jumping = false;
+					}					
+
+					else if(this.pos.y + tile_size > tile_size * 10 + 4){
+						this.jumping = false;
+						this.pos.y = tile_size * 10 + 4;
+						this.vy = 0;
+					}
+				}
+			}
+
+			function Bullet(x, y, d){
+				this.vx;
+				this.pos = createVector(x, y+4);
+				this.color = color(0,0,0);
+
+				this.update = function(){
+					this.vx = 5 * d;
+					this.pos.x += this.vx;
+				}
+
+				this.render = function(){
+					fill(this.color);
+					noStroke();
+					ellipse(this.pos.x, this.pos.y, 3, 3);
+				}
+			}
+
+			function collideBulletChicken(x, y, w, h, x2, y2, w2, h2) {
+				if (x + w >= x2 &&
+					x <= x2 + w2 &&
+					y + h >= y2 &&
+					y <= y2 + h2) {
+					return true;
+				}
+				return false;
+			}
+		</script>
+</body>
+</html>
